@@ -9,6 +9,8 @@ speech from text using the TTS API.
 import base64
 import requests
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 API_KEY = os.environ.get("XAI_API_KEY")
 BASE_URL = "https://us-east-4.api.x.ai/voice-staging"
@@ -55,7 +57,7 @@ def tts_request(
     }
 
     print(f"Making POST request to {ENDPOINT}")
-    print(f"Payload: {payload}")
+    # print(f"Payload: {payload}")
 
     response = requests.post(ENDPOINT, json=payload, stream=True, headers={"Authorization": f"Bearer {API_KEY}"})
 
@@ -81,18 +83,18 @@ def main():
     print("\n📝 Example 1: Simple POST request")
     print("-" * 60)
     tts_request(
-        input_text="This is a POST request example with voice cloning.",
-        output_file="example1_arnold.mp3",
-        voice_file="voices/arnold.m4a",
+        input_text="I hope this message finds you well. I am writing to inform you that a major demerit has been issued due to your absence at the Pl meeting on January 26. This is like making fun of a down syndrome person for looking like they what they look like and Building quantum computers to leverage Computer Vision (CV) and Synthetic Data to Stay safe out there and keeo dividing the aray until each subarray has one element, then keep merging subaraays in order to enter the flow state using the Do it now mindset while building a Minimum Viable Product (MVP) to provide Proof on Concept (POC) for a high-growth startup tech company that enables decentralized intelligence by implementing big data and CRM on the Blockchain through dabbling in fintech and quantitative finance that parses large strings (Multi-threaded) through federated and reinforcement learning.",
+        output_file="example1_rahul.mp3",
+        voice_file="voices/rahul.m4a",
     )
 
-    print("\n📝 Example 1: Simple POST request")
-    print("-" * 60)
-    tts_request(
-        input_text="This is a POST request example with voice cloning.",
-        output_file="example1_dense.mp3",
-        vibe="black american male, aged 60-65",
-    )
+    # print("\n📝 Example 1: Simple POST request")
+    # print("-" * 60)
+    # tts_request(
+    #     input_text="This is a POST request example with voice cloning.",
+    #     output_file="example1_dense.mp3",
+    #     vibe="black american male, aged 60-65",
+    # )
 
 
 if __name__ == "__main__":

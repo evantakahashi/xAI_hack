@@ -5,3 +5,4 @@ twilio==9.8.8
 uvicorn==0.38.0
 websockets==15.0.1
 audioop-lts==0.2.2
+supabase==2.25.0

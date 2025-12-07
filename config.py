@@ -23,8 +23,9 @@ XAI_API_KEY = os.getenv("XAI_API_KEY", "")
 XAI_BASE_URL = "https://api.x.ai/v1"
 
 # Supabase Configuration
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://podtjfttutrybvotsduh.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvZHRqZnR0dXRyeWJ2b3RzZHVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwOTgwMjksImV4cCI6MjA4MDY3NDAyOX0.OtP1eZ_TmiWyylcsf6HXndV3h44CHw-7rd0SBoEFlKE")
+# Get from: https://supabase.com/dashboard/project/YOUR_PROJECT/settings/api
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 # Grok Model Settings (using xai_sdk)
 GROK_MODEL = "grok-3-fast"  # Fast model for all operations

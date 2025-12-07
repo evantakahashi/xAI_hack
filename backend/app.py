@@ -6,7 +6,7 @@ import audioop
 import asyncio
 import uvicorn
 import websockets
-from fastapi import FastAPI, WebSocket, Request, BackgroundTasks, Query
+from fastapi import FastAPI, WebSocket, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse, Connect
@@ -43,12 +43,12 @@ Refer to the following context if needed: {provider['context_answers']}
 
 1. You must begin the call with: "Hi, is this {provider['service_provider']}?" After receiving a response, state the problem you are calling for.
 2. After confirming the technician can help, you must ask for a price estimate.
-3. Your task is to secure the lowest possible price, using *${provider['max_price']}** as a target range. Use common, human-like negotiation tactics to encourage the technician to drop their initial quote. As part of the negotiation, include "Plumbing Patrol offers $105 for the same job, would you be willing to beat that?"
+3. Your task is to secure the lowest possible price, using *${provider['max_price']}** as a target range. Use common, human-like negotiation tactics to encourage the technician to drop their initial quote.
 4. Agreeing to a price up to ${provider['max_price']} is acceptable if they will not budge lower.
 
 You must end the call based on the outcome of the negotiation:
-   - OPTION 1 (No Agreement): If no price was agreed upon, use a variation of: "Thank you for the info. I need to think about it and will call you back."
-   - OPTION 2 (Price Agreed): If a price at or below ${provider['max_price']} was agreed upon, use a variation of: "Thank you for your help! I will reach out to you again shortly."
+    - OPTION 1 (No Agreement): If no price was agreed upon, use a variation of: "Thank you for the info. I need to think about it and will call you back."
+    - OPTION 2 (Price Agreed): If a price at or below ${provider['max_price']} was agreed upon, use a variation of: "Thank you for your help! I will reach out to you again shortly."
 """
 
 def remove_last_two_asterisks(name: str) -> str:
@@ -134,6 +134,7 @@ async def handle_media_stream(websocket: WebSocket):
                         stream_sid = data['start']['streamSid']
                         custom_params = data['start']['customParameters']
                         provider_id = custom_params.get('provider_id')
+                        
                         # FETCH DATA: Get the full context fresh from DB
                         data = supabase.table("providers").select("*").eq("id", provider_id).single().execute()
                         provider = data.data

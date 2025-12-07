@@ -117,6 +117,9 @@ class Provider(ProviderBase):
     """Full provider record from database."""
     id: int
     job_id: str
+    estimated_price: Optional[float] = None
+    negotiated_price: Optional[float] = None
+    call_status: Optional[str] = None
 
     class Config:
         from_attributes = True

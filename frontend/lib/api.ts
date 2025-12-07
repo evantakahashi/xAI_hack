@@ -21,6 +21,8 @@ export interface Provider {
   name: string
   phone: string | null
   estimated_price: number | null
+  negotiated_price?: number | null
+  call_status?: string | null
   raw_result?: Record<string, unknown>
 }
 
@@ -105,6 +107,44 @@ export async function completeJob(
   if (!response.ok) {
     const error = await response.json()
     throw new Error(error.detail || "Failed to complete job")
+  }
+
+  return response.json()
+}
+
+/**
+ * Get provider status for a job (includes call status and negotiated prices)
+ */
+export async function getProviderStatus(jobId: string): Promise<Provider[]> {
+  const response = await fetch(`${API_URL}/api/providers/${jobId}/status`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || "Failed to get provider status")
+  }
+
+  return response.json()
+}
+
+/**
+ * Start calls for all providers in a job
+ */
+export async function startCalls(jobId: string): Promise<{ status: string; message: string; provider_count: number }> {
+  const response = await fetch(`${API_URL}/api/start-calls/${jobId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || "Failed to start calls")
   }
 
   return response.json()

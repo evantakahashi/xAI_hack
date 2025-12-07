@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict
 import uuid
+import os
 
 from schemas import (
     StartJobRequest,
@@ -30,6 +31,7 @@ from db.models import (
     get_all_providers,
     format_context_answers
 )
+import httpx
 from services.grok_llm import format_problem_statement
 from services.grok_llm import infer_task, generate_clarifying_questions
 from services.grok_search import search_providers
@@ -263,7 +265,8 @@ async def complete_job(request: CompleteJobRequest):
                 house_address=job.house_address,
                 zip_code=job.zip_code,
                 max_price=max_price,
-                problem=problem_statement
+                problem=problem_statement,
+                call_status="pending"  # Initialize as pending
             )
             
             created_provider = create_provider(db_provider)
@@ -272,7 +275,10 @@ async def complete_job(request: CompleteJobRequest):
                 id=created_provider.id,
                 job_id=created_provider.job_id,
                 name=created_provider.service_provider,
-                phone=created_provider.phone_number
+                phone=created_provider.phone_number,
+                estimated_price=created_provider.minimum_quote,
+                negotiated_price=created_provider.negotiated_price,
+                call_status=created_provider.call_status or "pending"
             ))
         
         # Update job status
@@ -323,10 +329,77 @@ async def get_providers_by_job(job_id: str):
             id=p.id,
             job_id=p.job_id,
             name=p.service_provider,
-            phone=p.phone_number
+            phone=p.phone_number,
+            estimated_price=p.minimum_quote,
+            negotiated_price=p.negotiated_price,
+            call_status=p.call_status or "pending"
         )
         for p in providers
     ]
+
+
+@app.get("/api/providers/{job_id}/status")
+async def get_providers_status(job_id: str):
+    """
+    Get all providers for a job with their call status and negotiated prices.
+    This endpoint is optimized for polling by the frontend.
+    """
+    providers = get_providers_by_job_id(job_id)
+    return [
+        {
+            "id": p.id,
+            "job_id": p.job_id,
+            "name": p.service_provider,
+            "phone": p.phone_number,
+            "estimated_price": p.minimum_quote,
+            "negotiated_price": p.negotiated_price,
+            "call_status": p.call_status or "pending",
+            "call_transcript": p.call_transcript
+        }
+        for p in providers
+    ]
+
+
+@app.post("/api/start-calls/{job_id}")
+async def start_calls(job_id: str):
+    """
+    Trigger calls for all providers in a job.
+    This calls the backend/app.py service running on port 6000.
+    """
+    # Verify job exists
+    job = jobs_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job not found: {job_id}")
+    
+    # Verify providers exist
+    providers = get_providers_by_job_id(job_id)
+    if not providers:
+        raise HTTPException(status_code=404, detail=f"No providers found for job: {job_id}")
+    
+    # Call the backend service to start calls
+    # The backend/app.py runs on port 6000 and has the /start-job/{job_id} endpoint
+    backend_url = os.getenv("CALL_BACKEND_URL", "http://localhost:6000")
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(f"{backend_url}/start-job/{job_id}")
+            if response.status_code == 200:
+                result = response.json()
+                return {
+                    "status": "started",
+                    "message": f"Started calls for {result.get('count', len(providers))} providers",
+                    "provider_count": result.get("count", len(providers))
+                }
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Failed to start calls: {response.text}"
+                )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Call backend service unavailable: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

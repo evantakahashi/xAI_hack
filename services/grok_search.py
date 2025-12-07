@@ -22,6 +22,7 @@ load_dotenv()
 
 # Get OpenAI API key from environment
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_ORG_API_KEY = os.getenv("OPENAI_ORG_API_KEY", "")
 
 # Thread pool for running synchronous SDK calls
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -61,7 +62,7 @@ def _sync_search_providers(job: Job) -> List[ProviderCreate]:
     
     try:
         # Initialize OpenAI Client
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=OPENAI_API_KEY, organization=OPENAI_ORG_API_KEY)
         
         print("[OpenAI Search] Calling web_search tool...", flush=True)
         
@@ -238,5 +239,5 @@ def _fallback_providers(job: Job) -> List[ProviderCreate]:
             name=name,
             phone=phone
         )
-        for name, phone, _ in provider_list
+        for name, phone, _ in provider_list[:MAX_PROVIDERS]
     ]

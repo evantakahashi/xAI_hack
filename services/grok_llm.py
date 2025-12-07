@@ -5,7 +5,7 @@ Uses xAI's official SDK: https://docs.x.ai/docs/guides/chat
 """
 
 import os
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from dotenv import load_dotenv
 
 from xai_sdk import Client
@@ -357,3 +357,121 @@ def _fallback_problem_statement(original_query: str, task: str) -> str:
         formatted_query = "your lawn needs to be mowed"
     
     return formatted_query
+
+
+async def extract_negotiated_price(transcript: List[Dict[str, str]]) -> Optional[float]:
+    """
+    Extract the negotiated price from a call transcript using Grok LLM.
+    
+    Args:
+        transcript: List of transcript entries with 'role' and 'text' keys
+        
+    Returns:
+        Negotiated price as float, or None if no price was agreed upon
+    """
+    if not transcript:
+        return None
+    
+    # Use fallback if no API key is configured
+    if not XAI_API_KEY:
+        print("⚠️  No XAI_API_KEY set - using fallback price extraction")
+        return _fallback_extract_price(transcript)
+    
+    # Format transcript for LLM
+    transcript_text = "\n".join([
+        f"[{entry['role'].upper()}]: {entry['text']}"
+        for entry in transcript
+    ])
+    
+    system_prompt = """You are analyzing a phone call transcript between a homeowner and a service provider.
+Your task is to extract the FINAL AGREED-UPON PRICE that was negotiated during the call.
+
+IMPORTANT RULES:
+1. Look for the final price that was agreed upon, not initial quotes
+2. The price should be a number (e.g., 125, 150.50, 200)
+3. If no price was agreed upon, respond with "none"
+4. If multiple prices are mentioned, use the FINAL agreed price
+5. Respond with ONLY the numeric value, nothing else (e.g., "125" or "150.50")
+6. If the call ended without agreement, respond with "none"
+
+Examples:
+- "$125" -> "125"
+- "one hundred twenty five dollars" -> "125"
+- "We agreed on $150" -> "150"
+- "I'll do it for $200" -> "200"
+- No agreement reached -> "none" """
+
+    user_prompt = f"""Call transcript:
+{transcript_text}
+
+What was the final agreed-upon price? Respond with only the number or "none" if no price was agreed."""
+
+    try:
+        # Initialize xAI Client
+        client = Client(api_key=XAI_API_KEY)
+        
+        # Create Chat
+        chat = client.chat.create(model="grok-3-fast")
+        
+        # Add messages
+        chat.append(system(system_prompt))
+        chat.append(user(user_prompt))
+        
+        # Get response
+        full_response = ""
+        for response, chunk in chat.stream():
+            if chunk.content:
+                full_response += chunk.content
+        
+        price_str = full_response.strip().lower()
+        
+        # Handle "none" or empty responses
+        if not price_str or price_str == "none" or "no" in price_str or "not" in price_str:
+            return None
+        
+        # Extract numeric value
+        import re
+        # Find all numbers (including decimals)
+        numbers = re.findall(r'\d+\.?\d*', price_str)
+        if numbers:
+            try:
+                price = float(numbers[0])
+                return price
+            except ValueError:
+                pass
+        
+        return None
+        
+    except Exception as e:
+        print(f"Grok API exception during price extraction: {e}")
+        return _fallback_extract_price(transcript)
+
+
+def _fallback_extract_price(transcript: List[Dict[str, str]]) -> Optional[float]:
+    """Fallback price extraction using regex when API is unavailable."""
+    import re
+    
+    # Combine all text
+    full_text = " ".join([entry['text'] for entry in transcript])
+    
+    # Look for price patterns: $125, 125 dollars, one hundred twenty five, etc.
+    # Common patterns: $XXX, XXX dollars, "agreed on XXX", "XXX for the job"
+    patterns = [
+        r'\$(\d+\.?\d*)',  # $125, $125.50
+        r'(\d+\.?\d*)\s*dollars?',  # 125 dollars
+        r'agreed\s+on\s+(\d+\.?\d*)',  # agreed on 125
+        r'(\d+\.?\d*)\s+for\s+the',  # 125 for the job
+        r'price\s+is\s+(\d+\.?\d*)',  # price is 125
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, full_text, re.IGNORECASE)
+        if matches:
+            try:
+                # Get the last match (most likely the final agreed price)
+                price = float(matches[-1])
+                return price
+            except ValueError:
+                continue
+    
+    return None

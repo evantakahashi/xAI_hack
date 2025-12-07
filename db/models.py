@@ -33,7 +33,10 @@ class Provider:
         max_price: Optional[float] = None,
         job_id: Optional[str] = None,
         minimum_quote: Optional[float] = None,
-        problem: Optional[str] = None
+        problem: Optional[str] = None,
+        negotiated_price: Optional[float] = None,
+        call_status: Optional[str] = None,
+        call_transcript: Optional[str] = None
     ):
         self.id = id
         self.service_provider = service_provider
@@ -45,6 +48,9 @@ class Provider:
         self.job_id = job_id
         self.minimum_quote = minimum_quote
         self.problem = problem
+        self.negotiated_price = negotiated_price
+        self.call_status = call_status
+        self.call_transcript = call_transcript
     
     def __repr__(self):
         return f"<Provider(id={self.id}, service_provider='{self.service_provider}', phone_number='{self.phone_number}')>"
@@ -70,6 +76,12 @@ class Provider:
             data["minimum_quote"] = self.minimum_quote
         if self.problem is not None:
             data["problem"] = self.problem
+        if self.negotiated_price is not None:
+            data["negotiated_price"] = self.negotiated_price
+        if self.call_status is not None:
+            data["call_status"] = self.call_status
+        if self.call_transcript is not None:
+            data["call_transcript"] = self.call_transcript
         return data
     
     @classmethod
@@ -85,7 +97,10 @@ class Provider:
             max_price=data.get("max_price"),
             job_id=data.get("job_id"),
             minimum_quote=data.get("minimum_quote"),
-            problem=data.get("problem")
+            problem=data.get("problem"),
+            negotiated_price=data.get("negotiated_price"),
+            call_status=data.get("call_status"),
+            call_transcript=data.get("call_transcript")
         )
 
 
@@ -100,7 +115,8 @@ def init_db():
     print("⚠️  Note: Ensure the 'providers' table exists in your Supabase database.")
     print("   Required columns: id (serial), service_provider (text), phone_number (text),")
     print("   context_answers (text), house_address (text), zip_code (text), max_price (numeric),")
-    print("   job_id (text), minimum_quote (numeric), problem (text)")
+    print("   job_id (text), minimum_quote (numeric), problem (text),")
+    print("   negotiated_price (numeric), call_status (text), call_transcript (text)")
 
 
 def create_provider(provider: Provider) -> Provider:
@@ -190,6 +206,39 @@ def format_context_answers(answers: Dict[str, str], questions: List[Any]) -> str
         paragraphs.append(f"{question_text} {answer}")
     
     return " ".join(paragraphs)
+
+
+def update_provider_call_status(
+    provider_id: int,
+    call_status: str,
+    negotiated_price: Optional[float] = None,
+    call_transcript: Optional[str] = None
+) -> Optional[Provider]:
+    """
+    Update a provider's call status and related fields.
+    
+    Args:
+        provider_id: Provider ID
+        call_status: New call status ('pending', 'in_progress', 'completed', 'failed')
+        negotiated_price: Negotiated price if available
+        call_transcript: Full call transcript if available
+        
+    Returns:
+        Updated Provider object or None if not found
+    """
+    update_data = {"call_status": call_status}
+    
+    if negotiated_price is not None:
+        update_data["negotiated_price"] = negotiated_price
+    
+    if call_transcript is not None:
+        update_data["call_transcript"] = call_transcript
+    
+    response = supabase.table(PROVIDERS_TABLE).update(update_data).eq("id", provider_id).execute()
+    
+    if response.data and len(response.data) > 0:
+        return Provider.from_dict(response.data[0])
+    return None
 
 
 # Note: format_problem_statement has been moved to services/grok_llm.py as an async function

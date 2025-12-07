@@ -31,5 +31,4 @@ GROK_MODEL = "grok-3-fast"  # Fast model for all operations
 
 # Search Configuration
 SEARCH_ALLOWED_DOMAINS = ["maps.google.com", "google.com/maps"]
-MAX_PROVIDERS = 10
-
+MAX_PROVIDERS = 1

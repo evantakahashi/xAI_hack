@@ -65,9 +65,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
       {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded-lg z-50">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-red-500/20 border border-red-500/40 text-red-400 px-4 py-2 rounded-lg z-50">
           {error}
         </div>
       )}
@@ -75,10 +75,10 @@ export default function Home() {
       {screen === "landing" && <LandingPage onStartSearch={handleStartSearch} />}
 
       {screen === "loading-questions" && (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-            <p className="text-muted-foreground">Analyzing your request with AI...</p>
+            <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+            <p className="text-gray-400">Analyzing your request with AI...</p>
           </div>
         </div>
       )}
@@ -93,10 +93,10 @@ export default function Home() {
       )}
 
       {screen === "loading-console" && (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-            <p className="text-muted-foreground">Finding providers near you...</p>
+            <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+            <p className="text-gray-400">Finding providers near you...</p>
           </div>
         </div>
       )}

@@ -66,31 +66,31 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
   const getStatusColor = () => {
     switch (callStatus) {
       case "calling":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20"
+        return "bg-blue-500/20 text-blue-400 border-blue-500/40"
       case "negotiating":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/40"
       case "ended":
-        return "bg-green-500/10 text-green-500 border-green-500/20"
+        return "bg-green-500/20 text-green-400 border-green-500/40"
       default:
-        return "bg-muted text-muted-foreground"
+        return "bg-gray-700 text-gray-400 border-gray-600"
     }
   }
 
   // Handle empty providers
   if (providers.length === 0) {
     return (
-      <div className="min-h-screen p-4 md:p-8">
+      <div className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Call Console</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold text-white">Call Console</h1>
+            <p className="text-gray-400">
               Request: {searchQuery} • {zipcode} • Budget: {priceLimit}
             </p>
           </div>
-          <Card>
+          <Card className="bg-gray-800 border-white">
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">No providers found in your area.</p>
-              <p className="text-sm text-muted-foreground mt-2">Try adjusting your search or location.</p>
+              <p className="text-gray-400">No providers found in your area.</p>
+              <p className="text-sm text-gray-500 mt-2">Try adjusting your search or location.</p>
             </CardContent>
           </Card>
         </div>
@@ -99,55 +99,55 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold">Call Console</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-white">Call Console</h1>
+          <p className="text-gray-400">
             Request: {searchQuery} • {zipcode} • Budget: {priceLimit}
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Providers List */}
-          <Card>
+          <Card className="bg-gray-800 border-white">
             <CardHeader>
-              <CardTitle>Service Providers ({providers.length})</CardTitle>
+              <CardTitle className="text-white">Service Providers ({providers.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {providers.map((provider, index) => (
                 <div
                   key={provider.id}
                   className={`p-4 rounded-lg border transition-colors ${
-                    index === currentProvider && isRunning ? "bg-primary/5 border-primary" : "bg-card border-border"
+                    index === currentProvider && isRunning ? "bg-white/10 border-white" : "bg-gray-900 border-white/30"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                      <h3 className="font-semibold">{provider.name}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <h3 className="font-semibold text-white">{provider.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
                         <Phone className="h-3 w-3" />
                         {provider.phone || "No phone"}
                       </div>
                     </div>
                     {provider.estimated_price && (
-                      <Badge variant="secondary" className="text-sm">
+                      <Badge variant="secondary" className="text-sm bg-white/20 text-white border-white/30">
                         ${provider.estimated_price}
                       </Badge>
                     )}
                   </div>
 
                   {index === currentProvider && callStatus === "ended" && negotiatedPrice && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <div className="flex items-center gap-2 text-green-500 font-semibold">
+                    <div className="mt-3 pt-3 border-t border-white/30">
+                      <div className="flex items-center gap-2 text-green-400 font-semibold">
                         <DollarSign className="h-4 w-4" />
                         Negotiated: ${negotiatedPrice}
                       </div>
                     </div>
                   )}
 
-                  {index < currentProvider && <div className="mt-3 text-xs text-muted-foreground">Completed</div>}
+                  {index < currentProvider && <div className="mt-3 text-xs text-gray-500">Completed</div>}
                 </div>
               ))}
             </CardContent>
@@ -155,34 +155,34 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
 
           {/* Call Status */}
           <div className="space-y-6">
-            <Card>
+            <Card className="bg-gray-800 border-white">
               <CardHeader>
-                <CardTitle>Current Call</CardTitle>
+                <CardTitle className="text-white">Current Call</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isRunning ? (
                   <>
                     <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">Provider</div>
-                      <div className="text-lg font-semibold">{providers[currentProvider].name}</div>
+                      <div className="text-sm text-gray-400">Provider</div>
+                      <div className="text-lg font-semibold text-white">{providers[currentProvider].name}</div>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">Phone</div>
-                      <div className="text-base">{providers[currentProvider].phone || "No phone available"}</div>
+                      <div className="text-sm text-gray-400">Phone</div>
+                      <div className="text-base text-white">{providers[currentProvider].phone || "No phone available"}</div>
                     </div>
 
                     <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">Status</div>
+                      <div className="text-sm text-gray-400">Status</div>
                       <Badge className={getStatusColor()}>{getStatusText()}</Badge>
                     </div>
 
                     {negotiatedPrice && (
                       <div className="space-y-2">
-                        <div className="text-sm text-muted-foreground">Final Price</div>
-                        <div className="text-2xl font-bold text-green-500">${negotiatedPrice}</div>
+                        <div className="text-sm text-gray-400">Final Price</div>
+                        <div className="text-2xl font-bold text-green-400">${negotiatedPrice}</div>
                         {providers[currentProvider].estimated_price && (
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-gray-500">
                             Saved ${providers[currentProvider].estimated_price! - negotiatedPrice}
                           </div>
                         )}
@@ -191,8 +191,8 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
                   </>
                 ) : (
                   <div className="py-8 text-center">
-                    <div className="text-lg font-semibold mb-2">All Calls Complete</div>
-                    <p className="text-sm text-muted-foreground">
+                    <div className="text-lg font-semibold mb-2 text-white">All Calls Complete</div>
+                    <p className="text-sm text-gray-400">
                       We've contacted all {providers.length} providers in your area.
                     </p>
                   </div>
@@ -201,13 +201,13 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
             </Card>
 
             {/* Control Buttons (Representational Only) */}
-            <Card>
+            <Card className="bg-gray-800 border-white">
               <CardHeader>
-                <CardTitle>Controls</CardTitle>
+                <CardTitle className="text-white">Controls</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="lg" className="w-full bg-transparent" disabled>
+                  <Button variant="outline" size="lg" className="w-full bg-transparent border-white text-white hover:bg-gray-700" disabled>
                     {callStatus === "ended" && isRunning ? (
                       <>
                         <Play className="mr-2 h-5 w-5" />
@@ -221,7 +221,7 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground text-center">System automatically manages calls</p>
+                <p className="text-xs text-gray-500 text-center">System automatically manages calls</p>
               </CardContent>
             </Card>
           </div>

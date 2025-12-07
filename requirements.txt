@@ -15,3 +15,12 @@ pydantic>=2.9.0
 
 # Environment variables
 python-dotenv>=1.0.0
+
+# CLI interface
+rich>=13.0.0
+
+# xAI SDK for Grok LLM
+xai-sdk>=0.1.0
+
+# OpenAI SDK for web search
+openai>=1.0.0

@@ -111,14 +111,12 @@ class ProviderBase(BaseModel):
 class ProviderCreate(ProviderBase):
     """Provider data for creating a new provider record."""
     job_id: str
-    raw_result: Dict[str, Any] = Field(default_factory=dict)
 
 
 class Provider(ProviderBase):
     """Full provider record from database."""
     id: int
     job_id: str
-    raw_result: Dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         from_attributes = True
@@ -175,15 +173,13 @@ class CompleteJobResponse(BaseModel):
                         "id": 1,
                         "job_id": "550e8400-e29b-41d4-a716-446655440000",
                         "name": "Mike's Plumbing Services",
-                        "phone": "(408) 555-1234",
-                        "raw_result": {}
+                        "phone": "(408) 555-1234"
                     },
                     {
                         "id": 2,
                         "job_id": "550e8400-e29b-41d4-a716-446655440000",
                         "name": "Bay Area Plumbers",
-                        "phone": "(408) 555-5678",
-                        "raw_result": {}
+                        "phone": "(408) 555-5678"
                     }
                 ]
             }

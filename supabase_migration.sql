@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS providers (
     max_price NUMERIC(10, 2),
     job_id TEXT NOT NULL,
     minimum_quote NUMERIC(10, 2),
-    raw_result JSONB DEFAULT '{}'::jsonb,
+    problem TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

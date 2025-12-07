@@ -98,7 +98,7 @@ async def search_providers(job: Job) -> List[ProviderCreate]:
         job: The complete Job object
         
     Returns:
-        List of ProviderCreate objects with name, phone, estimated_price
+        List of ProviderCreate objects with name, phone
     """
     # Use fallback if no API key is configured
     if not OPENAI_API_KEY:
@@ -175,9 +175,7 @@ def parse_provider_response(content: str, job_id: str) -> List[ProviderCreate]:
         providers.append(ProviderCreate(
             job_id=job_id,
             name=name,
-            phone=phone,
-            estimated_price=None,
-            raw_result={"original_line": line}
+            phone=phone
         ))
     
     return providers[:MAX_PROVIDERS]
@@ -238,9 +236,7 @@ def _fallback_providers(job: Job) -> List[ProviderCreate]:
         ProviderCreate(
             job_id=job.id,
             name=name,
-            phone=phone,
-            estimated_price=price,
-            raw_result={"source": "fallback", "zip_code": zip_code}
+            phone=phone
         )
-        for name, phone, price in provider_list
+        for name, phone, _ in provider_list
     ]

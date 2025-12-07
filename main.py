@@ -30,6 +30,7 @@ from db.models import (
     get_all_providers,
     format_context_answers
 )
+from services.grok_llm import format_problem_statement
 from services.grok_llm import infer_task, generate_clarifying_questions
 from services.grok_search import search_providers
 
@@ -238,6 +239,9 @@ async def complete_job(request: CompleteJobRequest):
         # Format context answers as a paragraph
         context_answers_text = format_context_answers(request.answers, job.questions)
         
+        # Format problem statement using Grok LLM
+        problem_statement = await format_problem_statement(job.original_query, job.task)
+        
         # Parse price_limit to get max_price
         max_price = None
         if isinstance(job.price_limit, (int, float)):
@@ -259,7 +263,7 @@ async def complete_job(request: CompleteJobRequest):
                 house_address=job.house_address,
                 zip_code=job.zip_code,
                 max_price=max_price,
-                raw_result=pc.raw_result
+                problem=problem_statement
             )
             
             created_provider = create_provider(db_provider)
@@ -268,8 +272,7 @@ async def complete_job(request: CompleteJobRequest):
                 id=created_provider.id,
                 job_id=created_provider.job_id,
                 name=created_provider.service_provider,
-                phone=created_provider.phone_number,
-                raw_result=created_provider.raw_result or {}
+                phone=created_provider.phone_number
             ))
         
         # Update job status
@@ -305,8 +308,7 @@ async def list_providers():
             id=p.id,
             job_id=p.job_id,
             name=p.service_provider,
-            phone=p.phone_number,
-            raw_result=p.raw_result or {}
+            phone=p.phone_number
         )
         for p in providers
     ]
@@ -321,8 +323,7 @@ async def get_providers_by_job(job_id: str):
             id=p.id,
             job_id=p.job_id,
             name=p.service_provider,
-            phone=p.phone_number,
-            raw_result=p.raw_result or {}
+            phone=p.phone_number
         )
         for p in providers
     ]

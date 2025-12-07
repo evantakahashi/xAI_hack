@@ -16,6 +16,12 @@ BEGIN
                    WHERE table_name = 'providers' AND column_name = 'minimum_quote') THEN
         ALTER TABLE providers ADD COLUMN minimum_quote NUMERIC(10, 2);
     END IF;
+    
+    -- Add problem column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'providers' AND column_name = 'problem') THEN
+        ALTER TABLE providers ADD COLUMN problem TEXT;
+    END IF;
 END $$;
 
 -- Remove estimated_price column if it exists
@@ -24,6 +30,15 @@ BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns 
                WHERE table_name = 'providers' AND column_name = 'estimated_price') THEN
         ALTER TABLE providers DROP COLUMN estimated_price;
+    END IF;
+END $$;
+
+-- Remove raw_result column if it exists
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns 
+               WHERE table_name = 'providers' AND column_name = 'raw_result') THEN
+        ALTER TABLE providers DROP COLUMN raw_result;
     END IF;
 END $$;
 

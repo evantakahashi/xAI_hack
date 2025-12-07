@@ -24,6 +24,7 @@ from db.models import (
     create_provider,
     format_context_answers
 )
+from services.grok_llm import format_problem_statement
 import uuid
 
 console = Console()
@@ -218,6 +219,10 @@ async def main():
     # Format context answers as a paragraph
     context_answers_text = format_context_answers(answers, questions)
     
+    # Format problem statement using Grok LLM
+    with console.status("[cyan]Formatting problem statement with Grok LLM...[/cyan]"):
+        problem_statement = await format_problem_statement(query, task)
+    
     # Parse price_limit to get max_price
     max_price = None
     if isinstance(price_limit, (int, float)):
@@ -240,7 +245,7 @@ async def main():
                 house_address=house_address,
                 zip_code=zip_code,
                 max_price=max_price,
-                raw_result=pc.raw_result
+                problem=problem_statement
             )
             
             created_provider = create_provider(db_provider)

@@ -33,7 +33,7 @@ class Provider:
         max_price: Optional[float] = None,
         job_id: Optional[str] = None,
         minimum_quote: Optional[float] = None,
-        raw_result: Optional[Dict[str, Any]] = None
+        problem: Optional[str] = None
     ):
         self.id = id
         self.service_provider = service_provider
@@ -44,7 +44,7 @@ class Provider:
         self.max_price = max_price
         self.job_id = job_id
         self.minimum_quote = minimum_quote
-        self.raw_result = raw_result or {}
+        self.problem = problem
     
     def __repr__(self):
         return f"<Provider(id={self.id}, service_provider='{self.service_provider}', phone_number='{self.phone_number}')>"
@@ -68,8 +68,8 @@ class Provider:
             data["job_id"] = self.job_id
         if self.minimum_quote is not None:
             data["minimum_quote"] = self.minimum_quote
-        if self.raw_result:
-            data["raw_result"] = self.raw_result
+        if self.problem is not None:
+            data["problem"] = self.problem
         return data
     
     @classmethod
@@ -85,7 +85,7 @@ class Provider:
             max_price=data.get("max_price"),
             job_id=data.get("job_id"),
             minimum_quote=data.get("minimum_quote"),
-            raw_result=data.get("raw_result", {})
+            problem=data.get("problem")
         )
 
 
@@ -100,7 +100,7 @@ def init_db():
     print("⚠️  Note: Ensure the 'providers' table exists in your Supabase database.")
     print("   Required columns: id (serial), service_provider (text), phone_number (text),")
     print("   context_answers (text), house_address (text), zip_code (text), max_price (numeric),")
-    print("   job_id (text), minimum_quote (numeric), raw_result (jsonb)")
+    print("   job_id (text), minimum_quote (numeric), problem (text)")
 
 
 def create_provider(provider: Provider) -> Provider:
@@ -190,3 +190,7 @@ def format_context_answers(answers: Dict[str, str], questions: List[Any]) -> str
         paragraphs.append(f"{question_text} {answer}")
     
     return " ".join(paragraphs)
+
+
+# Note: format_problem_statement has been moved to services/grok_llm.py as an async function
+# Import it from there: from services.grok_llm import format_problem_statement

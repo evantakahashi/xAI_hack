@@ -254,3 +254,106 @@ def _fallback_questions(task: str) -> List[Dict[str, str]]:
     ]
     
     return task_questions.get(task, default_questions)
+
+
+async def format_problem_statement(original_query: str, task: str) -> str:
+    """
+    Format a problem statement from the original query and task using Grok LLM.
+    
+    Returns a single line problem description in second person.
+    
+    Examples:
+    - "my lawn is too long" -> "your lawn needs to be mowed"
+    - "fix my toilet" -> "your toilet needs to be fixed"
+    - "my faucet is leaking" -> "your faucet is leaking"
+    
+    Args:
+        original_query: The user's original query (e.g., "my lawn is too long")
+        task: The inferred task type (e.g., "landscaper", "plumber")
+        
+    Returns:
+        Single line problem statement (e.g., "your toilet needs to be fixed")
+    """
+    if not original_query:
+        return ""
+    
+    # Use fallback if no API key is configured
+    if not XAI_API_KEY:
+        print("⚠️  No XAI_API_KEY set - using fallback problem statement")
+        return _fallback_problem_statement(original_query, task)
+    
+    system_prompt = """You are a problem statement formatter. Convert the user's query into a clear, concise problem description in second person.
+
+The output should be a single line describing the problem naturally.
+
+Rules:
+1. Convert first person to second person (e.g., "my lawn" -> "your lawn")
+2. Make it clear and concise - one sentence only
+3. Use natural language
+4. Keep it short and direct
+5. Use phrases like "needs to be fixed", "needs to be mowed", "is leaking", etc.
+
+Examples:
+- Input: "my lawn is too long" -> Output: "your lawn needs to be mowed"
+- Input: "fix my toilet" -> Output: "your toilet needs to be fixed"
+- Input: "my faucet is leaking" -> Output: "your faucet is leaking"
+- Input: "I need my house painted" -> Output: "your house needs to be painted"
+- Input: "my lawn is overgrown" -> Output: "your lawn needs to be mowed"
+
+Respond with ONLY the problem description, nothing else. One line only."""
+
+    user_prompt = f"User query: {original_query}"
+
+    try:
+        # Initialize xAI Client
+        client = Client(api_key=XAI_API_KEY)
+        
+        # Create Chat
+        chat = client.chat.create(model="grok-3-fast")
+        
+        # Add messages
+        chat.append(system(system_prompt))
+        chat.append(user(user_prompt))
+        
+        # Get response
+        full_response = ""
+        for response, chunk in chat.stream():
+            if chunk.content:
+                full_response += chunk.content
+        
+        problem_statement = full_response.strip()
+        
+        # Remove any quotes if present
+        problem_statement = problem_statement.strip('"').strip("'")
+        
+        # Remove any trailing periods if present (keep it clean)
+        problem_statement = problem_statement.rstrip('.')
+        
+        return problem_statement
+        
+    except Exception as e:
+        print(f"Grok API exception: {e}")
+        return _fallback_problem_statement(original_query, task)
+
+
+def _fallback_problem_statement(original_query: str, task: str) -> str:
+    """Fallback problem statement when API is unavailable."""
+    # Simple conversion: replace "my" with "your" and clean up
+    formatted_query = original_query.lower().strip()
+    formatted_query = formatted_query.replace("my ", "your ", 1)
+    formatted_query = formatted_query.replace("i need ", "you need ", 1)
+    formatted_query = formatted_query.replace("i want ", "you want ", 1)
+    
+    # Handle common patterns
+    if "fix" in formatted_query or "repair" in formatted_query:
+        # Extract object after "fix" or "repair"
+        parts = formatted_query.split()
+        if len(parts) > 1:
+            obj = parts[-1] if "your" in formatted_query else parts[1] if len(parts) > 1 else "item"
+            formatted_query = f"your {obj} needs to be fixed"
+    elif "lawn" in formatted_query and ("long" in formatted_query or "overgrown" in formatted_query):
+        formatted_query = "your lawn needs to be mowed"
+    elif "mow" in formatted_query:
+        formatted_query = "your lawn needs to be mowed"
+    
+    return formatted_query

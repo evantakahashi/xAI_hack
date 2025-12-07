@@ -25,18 +25,25 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
   useEffect(() => {
     if (!isRunning || providers.length === 0) return
 
-    // Simulate call progression
-    const timer = setTimeout(() => {
-      if (callStatus === "calling") {
+    // Simulate call progression - 1 minute per call total
+    // calling: 5s, negotiating: 50s, ended: 5s = 60s total
+    if (callStatus === "calling") {
+      const timer = setTimeout(() => {
         setCallStatus("negotiating")
-      } else if (callStatus === "negotiating") {
+      }, 5000) // 5 seconds for calling
+      return () => clearTimeout(timer)
+    } else if (callStatus === "negotiating") {
+      const timer = setTimeout(() => {
         const provider = providers[currentProvider]
         // Simulate negotiated price (10-20% off estimated price, or random if no estimate)
         const basePrice = provider.estimated_price || 150
         const discount = Math.floor(basePrice * (0.1 + Math.random() * 0.1))
         setNegotiatedPrice(basePrice - discount)
         setCallStatus("ended")
-      } else if (callStatus === "ended") {
+      }, 50000) // 50 seconds for negotiating
+      return () => clearTimeout(timer)
+    } else if (callStatus === "ended") {
+      const timer = setTimeout(() => {
         if (currentProvider < providers.length - 1) {
           setCurrentProvider(currentProvider + 1)
           setCallStatus("calling")
@@ -44,10 +51,9 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
         } else {
           setIsRunning(false)
         }
-      }
-    }, 3000)
-
-    return () => clearTimeout(timer)
+      }, 5000) // 5 seconds to show result
+      return () => clearTimeout(timer)
+    }
   }, [callStatus, currentProvider, isRunning, providers])
 
   const getStatusText = () => {

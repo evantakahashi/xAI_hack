@@ -18,7 +18,12 @@ from rich import print as rprint
 from services.grok_llm import infer_task, generate_clarifying_questions
 from services.grok_search import search_providers
 from schemas import Job, JobStatus, ClarifyingQuestion
-from db.models import init_db, SessionLocal, Provider
+from db.models import (
+    init_db,
+    Provider,
+    create_provider,
+    format_context_answers
+)
 import uuid
 
 console = Console()
@@ -49,15 +54,18 @@ async def main():
     
     if DEMO_MODE:
         query = "fix my leaky faucet"
+        house_address = "123 Main St, San Jose, CA 95126"
         zip_code = "95126"
         price_input = "200"
         date_needed = "2025-12-15"
         console.print(f"[cyan]Query:[/cyan] {query}")
+        console.print(f"[cyan]House Address:[/cyan] {house_address}")
         console.print(f"[cyan]ZIP Code:[/cyan] {zip_code}")
         console.print(f"[cyan]Budget:[/cyan] ${price_input}")
         console.print(f"[cyan]Date Needed:[/cyan] {date_needed}")
     else:
         query = Prompt.ask("[cyan]What do you need help with?[/cyan]")
+        house_address = Prompt.ask("[cyan]Your house address[/cyan]")
         zip_code = Prompt.ask("[cyan]Your ZIP code[/cyan]", default="95126")
         price_input = Prompt.ask("[cyan]Your budget (dollar amount or 'no_limit')[/cyan]", default="250")
         date_needed = Prompt.ask("[cyan]When do you need this done? (YYYY-MM-DD)[/cyan]", default="2025-12-15")
@@ -157,6 +165,7 @@ async def main():
         id=str(uuid.uuid4()),
         original_query=query,
         task=task,
+        house_address=house_address,
         zip_code=zip_code,
         date_needed=date_needed,
         price_limit=price_limit,
@@ -173,6 +182,7 @@ async def main():
     job_table.add_row("ID", job.id)
     job_table.add_row("Query", job.original_query)
     job_table.add_row("Task", job.task)
+    job_table.add_row("House Address", job.house_address)
     job_table.add_row("ZIP Code", job.zip_code)
     job_table.add_row("Date Needed", job.date_needed)
     job_table.add_row("Price Limit", str(job.price_limit))
@@ -203,35 +213,49 @@ async def main():
     console.print(f"[green]✓ Found {len(provider_creates)} providers![/green]\n")
     
     # ========== STEP 7: Save to database ==========
-    console.print("[bold yellow]💾 STEP 7: Saving providers to database...[/bold yellow]\n")
+    console.print("[bold yellow]💾 STEP 7: Saving providers to Supabase...[/bold yellow]\n")
     
-    db = SessionLocal()
+    # Format context answers as a paragraph
+    context_answers_text = format_context_answers(answers, questions)
+    
+    # Parse price_limit to get max_price
+    max_price = None
+    if isinstance(price_limit, (int, float)):
+        max_price = float(price_limit)
+    elif isinstance(price_limit, str) and price_limit.lower() != "no_limit":
+        try:
+            max_price = float(price_limit)
+        except ValueError:
+            pass
+    
     saved_providers = []
     
     try:
         for pc in provider_creates:
             db_provider = Provider(
                 job_id=pc.job_id,
-                name=pc.name,
-                phone=pc.phone,
-                estimated_price=pc.estimated_price,
+                service_provider=pc.name,
+                phone_number=pc.phone,
+                context_answers=context_answers_text,
+                house_address=house_address,
+                zip_code=zip_code,
+                max_price=max_price,
                 raw_result=pc.raw_result
             )
-            db.add(db_provider)
-            db.commit()
-            db.refresh(db_provider)
-            # Extract data while session is open
+            
+            created_provider = create_provider(db_provider)
+            
             saved_providers.append({
-                "id": db_provider.id,
-                "name": db_provider.name,
-                "phone": db_provider.phone,
-                "estimated_price": db_provider.estimated_price,
-                "job_id": db_provider.job_id
+                "id": created_provider.id,
+                "name": created_provider.service_provider,
+                "phone": created_provider.phone_number,
+                "job_id": created_provider.job_id
             })
         
-        console.print(f"[green]✓ Saved {len(saved_providers)} providers to database[/green]\n")
-    finally:
-        db.close()
+        console.print(f"[green]✓ Saved {len(saved_providers)} providers to Supabase[/green]\n")
+    except Exception as e:
+        console.print(f"[red]✗ Error saving to Supabase: {str(e)}[/red]\n")
+        raise
     
     console.print("─" * 50 + "\n")
     
@@ -242,16 +266,13 @@ async def main():
     provider_table.add_column("#", style="dim", width=3)
     provider_table.add_column("Name", style="cyan")
     provider_table.add_column("Phone", style="white")
-    provider_table.add_column("Est. Price", style="yellow")
     provider_table.add_column("DB ID", style="dim")
     
     for i, p in enumerate(saved_providers, 1):
-        price_str = f"${p['estimated_price']:.0f}" if p['estimated_price'] else "Unknown"
         provider_table.add_row(
             str(i),
             p['name'],
             p['phone'] or "N/A",
-            price_str,
             str(p['id'])
         )
     
@@ -288,8 +309,7 @@ async def main():
             {
                 "id": p['id'],
                 "name": p['name'],
-                "phone": p['phone'],
-                "estimated_price": p['estimated_price']
+                "phone": p['phone']
             }
             for p in saved_providers
         ]

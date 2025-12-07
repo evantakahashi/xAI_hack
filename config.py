@@ -6,9 +6,11 @@ API Keys Setup:
 Create a .env file in the project root with:
 
     XAI_API_KEY=your_xai_api_key_here
-    DATABASE_URL=sqlite:///./haggle.db
+    SUPABASE_URL=your_supabase_url
+    SUPABASE_KEY=your_supabase_api_key
 
 Get your xAI API key from: https://console.x.ai/
+Get your Supabase credentials from: https://supabase.com/dashboard
 """
 
 import os
@@ -20,8 +22,9 @@ load_dotenv()
 XAI_API_KEY = os.getenv("XAI_API_KEY", "")
 XAI_BASE_URL = "https://api.x.ai/v1"
 
-# Database Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./haggle.db")
+# Supabase Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://podtjfttutrybvotsduh.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvZHRqZnR0dXRyeWJ2b3RzZHVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwOTgwMjksImV4cCI6MjA4MDY3NDAyOX0.OtP1eZ_TmiWyylcsf6HXndV3h44CHw-7rd0SBoEFlKE")
 
 # Grok Model Settings (using xai_sdk)
 GROK_MODEL = "grok-3-fast"  # Fast model for all operations

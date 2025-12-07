@@ -7,9 +7,8 @@ Uses Grok LLM for task inference and Grok Fast Search for provider lookup.
 Run with: uvicorn main:app --reload
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from typing import Dict
 import uuid
 
@@ -23,7 +22,14 @@ from schemas import (
     ClarifyingQuestion,
     Provider as ProviderSchema
 )
-from db.models import Provider, init_db, get_db
+from db.models import (
+    Provider,
+    init_db,
+    create_provider,
+    get_providers_by_job_id,
+    get_all_providers,
+    format_context_answers
+)
 from services.grok_llm import infer_task, generate_clarifying_questions
 from services.grok_search import search_providers
 
@@ -90,6 +96,7 @@ async def start_job(request: StartJobRequest):
     ```json
     {
         "query": "fix my toilet",
+        "house_address": "123 Main St, San Jose, CA 95126",
         "zip_code": "95126",
         "price_limit": 250,
         "date_needed": "2025-12-10"
@@ -136,6 +143,7 @@ async def start_job(request: StartJobRequest):
             id=job_id,
             original_query=request.query,
             task=task,
+            house_address=request.house_address,
             zip_code=request.zip_code,
             date_needed=request.date_needed,
             price_limit=request.price_limit,
@@ -157,7 +165,7 @@ async def start_job(request: StartJobRequest):
 
 
 @app.post("/api/complete-job", response_model=CompleteJobResponse)
-async def complete_job(request: CompleteJobRequest, db: Session = Depends(get_db)):
+async def complete_job(request: CompleteJobRequest):
     """
     Complete a job with clarification answers and search for providers.
     
@@ -166,7 +174,7 @@ async def complete_job(request: CompleteJobRequest, db: Session = Depends(get_db
     2. Merge clarification answers into job
     3. Build search prompt from job JSON
     4. Call Grok Fast Search
-    5. Normalize and save providers to DB
+    5. Normalize and save providers to Supabase
     6. Return job + providers
     
     Example Request:
@@ -227,27 +235,41 @@ async def complete_job(request: CompleteJobRequest, db: Session = Depends(get_db
         # Step 3 & 4: Search for providers using Grok Fast Search
         provider_creates = await search_providers(job)
         
-        # Step 5: Save providers to database
+        # Format context answers as a paragraph
+        context_answers_text = format_context_answers(request.answers, job.questions)
+        
+        # Parse price_limit to get max_price
+        max_price = None
+        if isinstance(job.price_limit, (int, float)):
+            max_price = float(job.price_limit)
+        elif isinstance(job.price_limit, str) and job.price_limit.lower() != "no_limit":
+            try:
+                max_price = float(job.price_limit)
+            except ValueError:
+                pass
+        
+        # Step 5: Save providers to Supabase
         saved_providers = []
         for pc in provider_creates:
             db_provider = Provider(
                 job_id=pc.job_id,
-                name=pc.name,
-                phone=pc.phone,
-                estimated_price=pc.estimated_price,
+                service_provider=pc.name,
+                phone_number=pc.phone,
+                context_answers=context_answers_text,
+                house_address=job.house_address,
+                zip_code=job.zip_code,
+                max_price=max_price,
                 raw_result=pc.raw_result
             )
-            db.add(db_provider)
-            db.commit()
-            db.refresh(db_provider)
+            
+            created_provider = create_provider(db_provider)
             
             saved_providers.append(ProviderSchema(
-                id=db_provider.id,
-                job_id=db_provider.job_id,
-                name=db_provider.name,
-                phone=db_provider.phone,
-                estimated_price=db_provider.estimated_price,
-                raw_result=db_provider.raw_result or {}
+                id=created_provider.id,
+                job_id=created_provider.job_id,
+                name=created_provider.service_provider,
+                phone=created_provider.phone_number,
+                raw_result=created_provider.raw_result or {}
             ))
         
         # Update job status
@@ -275,16 +297,15 @@ async def get_job(job_id: str):
 
 
 @app.get("/api/providers")
-async def list_providers(db: Session = Depends(get_db)):
+async def list_providers():
     """List all providers in database (for debugging)."""
-    providers = db.query(Provider).all()
+    providers = get_all_providers()
     return [
         ProviderSchema(
             id=p.id,
             job_id=p.job_id,
-            name=p.name,
-            phone=p.phone,
-            estimated_price=p.estimated_price,
+            name=p.service_provider,
+            phone=p.phone_number,
             raw_result=p.raw_result or {}
         )
         for p in providers
@@ -292,16 +313,15 @@ async def list_providers(db: Session = Depends(get_db)):
 
 
 @app.get("/api/providers/{job_id}")
-async def get_providers_by_job(job_id: str, db: Session = Depends(get_db)):
+async def get_providers_by_job(job_id: str):
     """Get all providers for a specific job."""
-    providers = db.query(Provider).filter(Provider.job_id == job_id).all()
+    providers = get_providers_by_job_id(job_id)
     return [
         ProviderSchema(
             id=p.id,
             job_id=p.job_id,
-            name=p.name,
-            phone=p.phone,
-            estimated_price=p.estimated_price,
+            name=p.service_provider,
+            phone=p.phone_number,
             raw_result=p.raw_result or {}
         )
         for p in providers

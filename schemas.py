@@ -19,6 +19,7 @@ class JobStatus(str, Enum):
 class StartJobRequest(BaseModel):
     """Request to start a new job."""
     query: str = Field(..., description="User's free text query, e.g. 'fix my toilet'")
+    house_address: str = Field(..., description="Full house address")
     zip_code: str = Field(..., description="User's ZIP code")
     price_limit: Union[float, str] = Field(..., description="Dollar amount or 'no_limit'")
     date_needed: str = Field(..., description="Date needed, e.g. '2025-12-10'")
@@ -27,6 +28,7 @@ class StartJobRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "query": "fix my toilet",
+                "house_address": "123 Main St, San Jose, CA 95126",
                 "zip_code": "95126",
                 "price_limit": 250,
                 "date_needed": "2025-12-10"
@@ -68,6 +70,7 @@ class Job(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     original_query: str
     task: str = ""
+    house_address: str
     zip_code: str
     date_needed: str
     price_limit: Union[float, str]
@@ -103,7 +106,6 @@ class ProviderBase(BaseModel):
     """Base provider data from search results."""
     name: str
     phone: Optional[str] = None
-    estimated_price: Optional[float] = None
 
 
 class ProviderCreate(ProviderBase):
@@ -174,7 +176,6 @@ class CompleteJobResponse(BaseModel):
                         "job_id": "550e8400-e29b-41d4-a716-446655440000",
                         "name": "Mike's Plumbing Services",
                         "phone": "(408) 555-1234",
-                        "estimated_price": 150.0,
                         "raw_result": {}
                     },
                     {
@@ -182,7 +183,6 @@ class CompleteJobResponse(BaseModel):
                         "job_id": "550e8400-e29b-41d4-a716-446655440000",
                         "name": "Bay Area Plumbers",
                         "phone": "(408) 555-5678",
-                        "estimated_price": 175.0,
                         "raw_result": {}
                     }
                 ]

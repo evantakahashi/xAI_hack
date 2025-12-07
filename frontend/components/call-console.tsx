@@ -19,39 +19,42 @@ type CallStatus = "calling" | "negotiating" | "ended"
 export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: CallConsoleProps) {
   const [currentProvider, setCurrentProvider] = useState(0)
   const [callStatus, setCallStatus] = useState<CallStatus>("calling")
-  const [negotiatedPrice, setNegotiatedPrice] = useState<number | null>(null)
+  const [negotiatedPrices, setNegotiatedPrices] = useState<Record<number, number>>({})
   const [isRunning, setIsRunning] = useState(true)
+
+  // Hardcoded negotiated prices: first is $125, others are believable round numbers
+  const getNegotiatedPrice = (index: number): number => {
+    const hardcodedPrices = [125, 130, 120, 125, 135, 115, 130, 120, 125, 130]
+    return hardcodedPrices[index] || 125
+  }
 
   useEffect(() => {
     if (!isRunning || providers.length === 0) return
 
-    // Simulate call progression - 1 minute per call total
-    // calling: 5s, negotiating: 50s, ended: 5s = 60s total
+    // Simulate call progression - 10 seconds per call total
+    // calling: 2s, negotiating: 6s, ended: 2s = 10s total
     if (callStatus === "calling") {
       const timer = setTimeout(() => {
         setCallStatus("negotiating")
-      }, 5000) // 5 seconds for calling
+      }, 2000) // 2 seconds for calling
       return () => clearTimeout(timer)
     } else if (callStatus === "negotiating") {
       const timer = setTimeout(() => {
-        const provider = providers[currentProvider]
-        // Simulate negotiated price (10-20% off estimated price, or random if no estimate)
-        const basePrice = provider.estimated_price || 150
-        const discount = Math.floor(basePrice * (0.1 + Math.random() * 0.1))
-        setNegotiatedPrice(basePrice - discount)
+        // Use hardcoded price for this provider
+        const price = getNegotiatedPrice(currentProvider)
+        setNegotiatedPrices(prev => ({ ...prev, [currentProvider]: price }))
         setCallStatus("ended")
-      }, 50000) // 50 seconds for negotiating
+      }, 10000) // 10 seconds for negotiating
       return () => clearTimeout(timer)
     } else if (callStatus === "ended") {
       const timer = setTimeout(() => {
         if (currentProvider < providers.length - 1) {
           setCurrentProvider(currentProvider + 1)
           setCallStatus("calling")
-          setNegotiatedPrice(null)
         } else {
           setIsRunning(false)
         }
-      }, 5000) // 5 seconds to show result
+      }, 2000) // 2 seconds to show result
       return () => clearTimeout(timer)
     }
   }, [callStatus, currentProvider, isRunning, providers])
@@ -144,16 +147,18 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
                     )}
                   </div>
 
-                  {index === currentProvider && callStatus === "ended" && negotiatedPrice && (
+                  {negotiatedPrices[index] && (
                     <div className="mt-3 pt-3 border-t border-white/30">
                       <div className="flex items-center gap-2 text-green-400 font-semibold">
                         <DollarSign className="h-4 w-4" />
-                        Negotiated: ${negotiatedPrice}
+                        Negotiated: ${negotiatedPrices[index]}
                       </div>
                     </div>
                   )}
 
-                  {index < currentProvider && <div className="mt-3 text-xs text-gray-500">Completed</div>}
+                  {index < currentProvider && !negotiatedPrices[index] && (
+                    <div className="mt-3 text-xs text-gray-500">Completed</div>
+                  )}
                 </div>
               ))}
             </CardContent>
@@ -183,13 +188,13 @@ export function CallConsole({ searchQuery, priceLimit, zipcode, providers }: Cal
                       <Badge className={getStatusColor()}>{getStatusText()}</Badge>
                     </div>
 
-                    {negotiatedPrice && (
+                    {negotiatedPrices[currentProvider] && (
                       <div className="space-y-2">
                         <div className="text-sm text-gray-400">Final Price</div>
-                        <div className="text-2xl font-bold text-green-400">${negotiatedPrice}</div>
+                        <div className="text-2xl font-bold text-green-400">${negotiatedPrices[currentProvider]}</div>
                         {providers[currentProvider].estimated_price && (
                           <div className="text-xs text-gray-500">
-                            Saved ${providers[currentProvider].estimated_price! - negotiatedPrice}
+                            Saved ${providers[currentProvider].estimated_price! - negotiatedPrices[currentProvider]}
                           </div>
                         )}
                       </div>
